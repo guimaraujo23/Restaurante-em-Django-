@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel da Cozinha - Pedidos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header-cozinha {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filtros-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn_filtro {
+            background-color: #334155;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn_filtro.ativo {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border-color: #38bdf8;
+        }
+
+        .cozinha-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card-pedido {
+            background-color: #1e293b;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.3s ease;
+        }
+
+        .card-pedido.pendente {
+            border-left: 6px solid #f59e0b;
+        }
+
+        .card-pedido.preparo {
+            border-left: 6px solid #3b82f6;
+        }
+
+        .card-pedido.entregue {
+            border-left: 6px solid #10b981;
+        }
+
+        .card-pedido.concluido {
+            border-left: 6px solid #64748b;
+        }
+
+        .card-pedido.atrasado {
+            border-left: 6px solid #ef4444 !important;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .tempo-decorrido {
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .tempo-decorrido.atrasado-texto {
+            color: #ef4444;
+        }
+
+        .btn-entregue {
+            display: block;
+            text-align: center;
+            background-color: #22c55e;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 15px;
+        }
+
+        .btn-entregue:hover {
+            background-color: #16a34a;
+        }
+
+        .status-entregue {
+            background-color: #065f46;
+            color: #34d399;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        /* Se houver itens novos, a borda lateral fica obrigatoriamente vermelha */
+        .card-pedido.tem-novos {
+            border-left: 6px solid #ef4444 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header-cozinha">
+        <div>
+            <h1 style="margin: 0;">🧑‍🍳 Painel de Pedidos da Cozinha</h1>
+            <small style="color: #94a3b8;">Atualização automática ativa a cada 15s.</small>
+        </div>
+
+        <div class="filtros-container">
+
+            <button class="btn_filtro ativo" onclick="filtrarPedidos('pendente', this)">Pendentes / Em Preparo</button>
+            <button class="btn_filtro" onclick="filtrarPedidos('entregue', this)">Entregues</button>
+            <button class="btn_filtro" onclick="filtrarPedidos('conta_fechada', this)">Conta Fechada</button>
+            <button class="btn_filtro " onclick="filtrarPedidos('todos', this)">Todos</button>
+        </div>
+    </div>
+
+    <!-- ALERTA 1: ATENDIMENTO / CHAMAR GARÇOM -->
+    {% for mesa in mesas_atendimento %}
+    <div
+        style="background-color: #1e293b; border: 2px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="color: #fbbf24; font-weight: bold; font-size: 1rem;">
+            🔔 MESA {{ mesa.numero }} ESTÁ A CHAMAR O GARÇOM (ATENDIMENTO)!
+        </span>
+        <a href="{% url 'atender_chamado' mesa.numero %}"
+            style="background-color: #f59e0b; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+            ✓ Marcar Atendido
+        </a>
+    </div>
+    {% endfor %}
+
+    <!-- ALERTA 2: ENCERRAMENTO DE CONTA -->
+    {% for mesa in mesas_conta %}
+    <div
+        style="background-color: #1e293b; border: 2px solid #ef4444; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="color: #f87171; font-weight: bold; font-size: 1rem;">
+            💳 MESA {{ mesa.numero }} SOLICITOU O ENCERRAMENTO DA CONTA!
+        </span>
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'finalizar_atendimento' mesa.numero %}" class="btn-encerrar-cozinha"
+                style="background-color: #ef4444; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+                🧹 Encerrar Conta e Resetar Mesa
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- GRID PRINCIPAL DE PEDIDOS ATIVOS -->
+    <div id="secao-conta-fechada" class="aba-conta-fechada-content">
+        <div class="cozinha-grid">
+            {% for pedido in pedidos %}
+            <div class="card-pedido {% if pedido.status == 'ENTREGUE' %}entregue{% elif pedido.status == 'CONCLUIDO' %}concluido{% else %}{% for item in pedido.itens.all %}{% if item.novo and pedido.status != 'ENTREGUE' %}tem-novos{% endif %}{% endfor %}{% endif %}"
+                data-status="{{ pedido.status }}">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">Mesa {{ pedido.mesa.numero }}</h3>
+                </div>
+
+                <p style="margin: 8px 0; color: #94a3b8; font-size: 0.9rem;">
+                    Data: {{ pedido.data_criacao|date:"d/m/Y H:i" }} | Status: {{ pedido.get_status_display }}
+                </p>
+
+                <ul style="list-style: none; padding-left: 0; margin: 15px 0;">
+                    {% for item in pedido.itens.all %}
+                    <li
+                        style="margin-bottom: 8px; font-size: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span>
+                            {% if item.novo and pedido.status != 'ENTREGUE' %}
+                            <span
+                                style="height: 16px; width: 16px; background-color: #ef4444; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle;"
+                                title="Novo pedido!"></span>
+                            {% else %}
+                            <span
+                                style="height: 16px; width: 16px; background-color: #10b981; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle;"
+                                title="Já enviado"></span>
+                            {% endif %}
+
+                            <strong style="color: #38bdf8;">{{ item.quantidade }}x</strong>
+                            {{ item.prato_nome }}
+                        </span>
+                        <span style="color: #94a3b8;">R$ {{ item.subtotal }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div
+                    style="margin-top: 10px; font-weight: bold; border-top: 1px solid #334155; padding-top: 8px; display: flex; justify-content: space-between; color: #38bdf8;">
+                    <span>Total da Comanda:</span>
+                    <span>R$ {{ pedido.total_pedido }}</span>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    {% if pedido.status == 'ENTREGUE' %}
+                    <div class="status-entregue">
+                        ✓ Entregue na Mesa
+                    </div>
+                    {% else %}
+                    <a href="{% url 'marcar_entregue' pedido.id %}" class="btn-entregue">
+                        ✅ Marcar como Entregue
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p style="color: #94a3b8; text-align: center; grid-column: 1 / -1; margin-top: 40px;">Nenhum pedido
+                registado no momento.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- MODAL DE CONFIRMAÇÃO ESTILIZADO -->
+    <div id="modal-cozinha"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div
+            style="background: #1e293b; color: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; text-align: center; border: 1px solid #334155;">
+            <div style="font-size: 2.8rem; margin-bottom: 10px;">💳</div>
+            <h3 style="margin-bottom: 10px;">Confirmar Encerramento</h3>
+            <p style="color: #cbd5e1; margin-bottom: 22px;">Deseja realmente encerrar a conta e resetar todos os
+                pedidos
+                desta mesa?</p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button id="btn-cancelar-cozinha"
+                    style="background: #475569; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">Cancelar</button>
+                <a id="btn-confirmar-cozinha" href="#"
+                    style="background: #ef4444; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; text-decoration: none;">Confirmar</a>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        function filtrarPedidos(statusFiltro, botao) {
+            // Guarda a aba ativa no localStorage do navegador
+            localStorage.setItem('filtroAtivo', statusFiltro);
+
+            document.querySelectorAll('.btn_filtro').forEach(btn => btn.classList.remove('ativo'));
+            if (botao) botao.classList.add('ativo');
+            
+            document.querySelectorAll('.card-pedido').forEach(cartao => {
+                const status = cartao.getAttribute('data-status');
+                
+                if (statusFiltro === 'todos') {
+                    cartao.style.display = 'block';
+                } else if (statusFiltro === 'pendente') {
+                    if (status !== 'ENTREGUE' && status !== 'CONCLUIDO') {
+                        cartao.style.display = 'block';
+                    } else {
+                        cartao.style.display = 'none';
+                    }
+                } else if (statusFiltro === 'entregue') {
+                    if (status === 'ENTREGUE') {
+                        cartao.style.display = 'block';
+                    } else {
+                        cartao.style.display = 'none';
+                    }
+                } else if (statusFiltro === 'conta_fechada') {
+                    if (status === 'CONCLUIDO') {
+                        cartao.style.display = 'block';
+                    } else {
+                        cartao.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lê a aba que estava ativa ou assume 'pendente' por defeito
+            const filtroSalvo = localStorage.getItem('filtroAtivo') || 'pendente';
+            
+            const botoes = document.querySelectorAll('.btn_filtro');
+            let botaoAlvo = null;
+
+            botoes.forEach(btn => {
+                const onclickAttr = btn.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(filtroSalvo)) {
+                    botaoAlvo = btn;
+                }
+            });
+
+            if (!botaoAlvo && botoes.length > 0) {
+                botaoAlvo = botoes[0];
+            }
+
+            if (botaoAlvo) {
+                filtrarPedidos(filtroSalvo, botaoAlvo);
+            }
+
+            const modal = document.getElementById('modal-cozinha');
+            const btnCancelar = document.getElementById('btn-cancelar-cozinha');
+            const btnConfirmar = document.getElementById('btn-confirmar-cozinha');
+            const btnsEncerrar = document.querySelectorAll('.btn-encerrar-cozinha');
+            
+            btnsEncerrar.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const url = btn.getAttribute('href');
+                    if (btnConfirmar && modal) {
+                        btnConfirmar.setAttribute('href', url);
+                        modal.style.display = 'flex';
+                    }
+                });
+            });
+
+            if (btnCancelar) {
+                btnCancelar.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+            }
+        });
+
+        // Atualização automática a cada 10 segundos
+        setTimeout(function () {
+            location.reload();
+        }, 10000);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,472 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardápio Digital</title>
+    <link rel="stylesheet" href="{% static 'css/cardapio.css' %}?v=5">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+</head>
+
+<body>
+    <header class="header">
+        <h1>🌿 Restaurante Sabor & Arte</h1>
+        <p>Escolha as suas opções preferidas</p>
+
+        <nav class="nav-bar">
+            <ul>
+                {% for categoria in categorias %}
+                <li><a href="#cat-{{ categoria.id }}">{{ categoria.nome }}</a></li>
+                {% empty %}
+                <li><a href="#">Menu</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+    </header>
+
+    <main class="cardapio-layout container">
+
+        <!-- COLUNA DA ESQUERDA: CHEFS -->
+        <aside class="coluna-chefs">
+            <section class="chefs-secao">
+                <h2 class="titulo-secao">Nossa Equipe de Chefs</h2>
+
+                <div class="swiper carrossel-chefe">
+                    <div class="swiper-wrapper">
+                        {% for chef in chefs %}
+                        <div class="swiper-slide">
+                            <div class="card-chef">
+                                {% if chef.foto %}
+                                <img src="{{ chef.foto.url }}" alt="{{ chef.nome }}" class="chef-foto">
+                                {% else %}
+                                <img src="https://via.placeholder.com/140" alt="{{ chef.nome }}" class="chef-foto">
+                                {% endif %}
+                                <h3>{{ chef.nome }}</h3>
+                                <span class="chef-cargo">{{ chef.cargo }}</span>
+                                <p class="chef-bio">{{ chef.bio }}</p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p>Nenhum chef cadastrado.</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="swiper-pagination"></div>
+                </div>
+            </section>
+
+            <!-- Script de Inicialização do Swiper -->
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const swiper = new Swiper('.carrossel-chefe', {
+                        loop: true,
+                        slidesPerView: 1,
+                        spaceBetween: 20,
+                        autoplay: {
+                            delay: 4000,
+                            disableOnInteraction: false,
+                        },
+                        pagination: {
+                            el: '.swiper-pagination',
+                            clickable: true,
+                        }
+                    });
+                });
+            </script>
+        </aside>
+
+        <!-- COLUNA DA DIREITA: PRATOS DO CARDÁPIO -->
+        <section class="coluna-pratos">
+            {% for categoria in categorias %}
+            <div id="cat-{{ categoria.id }}" class="categoria-secao">
+                <h2>{{ categoria.nome }}</h2>
+                <div class="pratos-grid">
+                    {% for prato in categoria.pratos.all %}
+                    <div class="prato-card">
+                        {% if prato.destaque %}
+                        <span class="badge-destaque">MAIS PEDIDO</span>
+                        {% endif %}
+
+                        {% if prato.imagem %}
+                        <img src="{{ prato.imagem.url }}" alt="{{ prato.nome }}" class="prato-img">
+                        {% endif %}
+
+                        <div class="prato-info">
+                            <h3>{{ prato.nome }}</h3>
+                            <p class="descricao">{{ prato.descricao }}</p>
+                            <p class="preco">R$ {{ prato.preco }}</p>
+                            <button class="btn-pedir" data-id="{{ prato.id }}" data-nome="{{ prato.nome }}"
+                                data-preco="{{ prato.preco|stringformat:'.2f' }}">
+                                Pedir Agora
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p>Nenhum prato cadastrado nesta categoria.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <p>Nenhuma categoria cadastrada.</p>
+            {% endfor %}
+        </section>
+
+    </main>
+
+    <!-- Botão Flutuante do Carrinho/Comanda -->
+    <div id="btn-carrinho-flutuante" class="carrinho-flutuante" onclick="toggleCarrinho()">
+        🛒 <span id="carrinho-contador">0</span>
+    </div>
+
+    <!-- Painel Lateral da Sacola/Comanda da Mesa -->
+    <aside id="painel-carrinho" class="painel-carrinho">
+        <div class="carrinho-header">
+            <h2>Mesa {{ mesa.numero }}</h2>
+            <button class="btn-fechar" onclick="toggleCarrinho()">✕</button>
+        </div>
+
+        <form action="{% url 'enviar_pedido_cozinha' %}" method="POST" id="form-pedido">
+            {% csrf_token %}
+            <input type="hidden" name="mesa_id" value="{{ mesa.numero }}">
+            <input type="hidden" name="carrinho_json" id="carrinho_json">
+
+            <h3 style="margin-top: 15px;">Itens Selecionados:</h3>
+            <div id="carrinho-itens" class="carrinho-itens">
+                <p class="carrinho-vazio">Selecione os pratos no cardápio.</p>
+            </div>
+
+            <div class="carrinho-footer">
+                <div class="total-container">
+                    <span>Total a Enviar:</span>
+                    <strong id="carrinho-total">R$ 0,00</strong>
+                </div>
+
+                <!-- Mudar a classe para 'btn-submeter-pedido' evita que o JS do cardápio bloqueie este botão -->
+                <button type="submit" id="btn-enviar-cozinha" class="btn-submeter-pedido"
+                    style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;">
+                    👨‍🍳 Enviar Pedido para a Cozinha
+                </button>
+            </div>
+        </form>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
+
+        <!-- HISTÓRICO DA COMANDA DA MESA (ACUMULADO) -->
+        <div class="comanda-historico">
+            <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: #1e293b;">Comanda da Mesa (Acumulado)</h3>
+            {% if itens_comanda %}
+            <ul style="padding-left: 20px; font-size: 0.95rem; margin-top: 10px; color: #334155;">
+                {% for item in itens_comanda %}
+                <li style="margin-bottom: 6px;">
+                    <strong>{{ item.quantidade }}x</strong> {{ item.prato_nome }}
+                    - <span style="color: #16a34a; font-weight: bold;">R$ {{ item.subtotal }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <div
+                style="margin-top: 15px; padding-top: 10px; border-top: 2px dashed #cbd5e1; font-size: 1rem; color: #0f172a;">
+                <strong>Total da Mesa: R$ {{ total_comanda }}</strong>
+            </div>
+            {% else %}
+            <p style="margin-top: 10px; color: #64748b;"><small>Nenhum pedido enviado ainda.</small></p>
+            {% endif %}
+        </div>
+        <!-- Botões de Ação da Mesa -->
+        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <!-- Botão de Chamar Garçom -->
+            <a href="#" id="btn-chamar-garcom" data-url="{% url 'chamar_garcom' mesa.numero %}"
+                style="text-align: center; background-color: #f59e0b; color: white; padding: 12px; border-radius: 8px; font-weight: bold; text-decoration: none; display: block;">
+                🔔 Chamar Garçom / Atendimento
+            </a>
+
+            <!-- Botão de Encerrar Conta -->
+            <a href="#" id="btn-fechar-conta" data-url="{% url 'fechar_conta' mesa.numero %}"
+                style="text-align: center; background-color: #ef4444; color: white; padding: 12px; border-radius: 8px; font-weight: bold; text-decoration: none; display: block;">
+                💳 Pedir a Conta / Encerrar
+            </a>
+
+        </div>
+        <!-- BANNER DE NOTIFICAÇÃO ESTILIZADO -->
+        <div id="toast-notificacao"
+            style="display: none; position: fixed; top: 20px; right: 20px; z-index: 9999; background-color: #041a4e; color: rgb(180, 180, 180); padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 25px rgb(231, 5, 5); border-left: 5px solid #0a5ee5; font-size: 1rem; align-items: center; gap: 12px;">
+            <span id="toast-icone" style="font-size: 1.4rem;">🔔</span>
+            <span id="toast-mensagem"></span>
+        </div>
+        <!-- MODAL DE CONFIRMAÇÃO PERSONALIZADO -->
+        <div id="modal-confirmacao"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; justify-content: center; align-items: center;">
+            <div
+                style="background-color: #ffffff; width: 90%; max-width: 400px; padding: 25px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); text-align: center;">
+                <div id="modal-icone" style="font-size: 2.5rem; margin-bottom: 10px;">❓</div>
+                <h3 id="modal-titulo" style="margin-bottom: 10px; color: #0f172a; font-size: 1.25rem;">Confirmar Ação
+                </h3>
+                <p id="modal-mensagem" style="color: #64748b; margin-bottom: 25px; font-size: 0.95rem;">Tem a certeza
+                    que deseja continuar?</p>
+
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="btn-modal-cancelar"
+                        style="flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; background-color: #f8fafc; color: #475569; font-weight: 600; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button id="btn-modal-confirmar"
+                        style="flex: 1; padding: 10px 16px; border-radius: 8px; border: none; background-color: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer;">
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+        <script>
+            let carrinho = [];
+            // Adiciona aqui a validação sem alterar nenhuma tag ou variável:
+            const formPedido = document.getElementById('form-pedido');
+            if (formPedido) {
+                formPedido.addEventListener('submit', function (e) {
+                    if (!carrinho || carrinho.length === 0) {
+                        e.preventDefault();
+                        mostrarNotificacao('Por favor, peça um prato antes de enviar!', '⚠️');
+                        return false;
+                    }
+                });
+            }
+            document.addEventListener('click', function (e) {
+                // Intercepta APENAS o clique nos botões dos pratos do cardápio
+                const btnPrato = e.target.closest('.btn-pedir');
+
+                if (btnPrato) {
+                    e.preventDefault();
+
+                    const id = btnPrato.getAttribute('data-id');
+                    const nome = btnPrato.getAttribute('data-nome');
+                    const precoRaw = (btnPrato.getAttribute('data-preco') || "0").replace(',', '.');
+                    const preco = parseFloat(precoRaw) || 0;
+
+                    if (id) {
+                        adicionarAoCarrinho({ id, nome, preco });
+                    }
+
+                    // Exibe o painel lateral
+                    const painel = document.getElementById('painel-carrinho');
+                    if (painel) {
+                        painel.style.display = 'flex';
+                        painel.style.right = '0px';
+                        painel.classList.add('aberto');
+                    }
+                }
+            });
+
+            function adicionarAoCarrinho(item) {
+                const itemExistente = carrinho.find(i => i.id === item.id);
+                if (itemExistente) {
+                    itemExistente.quantidade++;
+                } else {
+                    carrinho.push({ ...item, quantidade: 1 });
+                }
+                atualizarCarrinho();
+            }
+
+            function removerDoCarrinho(id) {
+                carrinho = carrinho.filter(i => i.id !== id);
+                atualizarCarrinho();
+            }
+
+            function toggleCarrinho() {
+                const painel = document.getElementById('painel-carrinho');
+                if (painel) {
+                    if (painel.style.right === '0px') {
+                        painel.style.right = '-450px';
+                    } else {
+                        painel.style.display = 'flex';
+                        painel.style.right = '0px';
+                    }
+                }
+            }
+
+            function atualizarCarrinho() {
+                const containerItens = document.getElementById('carrinho-itens');
+                const contador = document.getElementById('carrinho-contador');
+                const totalEl = document.getElementById('carrinho-total');
+                const inputJson = document.getElementById('carrinho_json');
+
+                const totalQtd = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+                if (contador) contador.textContent = totalQtd;
+
+                let totalPreco = 0;
+
+                if (containerItens) {
+                    if (carrinho.length === 0) {
+                        containerItens.innerHTML = '<p class="carrinho-vazio">Selecione os pratos no cardápio.</p>';
+                    } else {
+                        containerItens.innerHTML = '';
+                        carrinho.forEach(item => {
+                            const subtotal = item.preco * item.quantidade;
+                            totalPreco += subtotal;
+
+                            containerItens.innerHTML += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #f1f5f9;">
+                            <div>
+                                <strong>${item.nome}</strong><br>
+                                <small>${item.quantidade}x R$ ${item.preco.toFixed(2)}</small>
+                            </div>
+                            <div>
+                                <span style="font-weight:bold;">R$ ${subtotal.toFixed(2)}</span>
+                                <button type="button" onclick="removerDoCarrinho('${item.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; margin-left:8px; font-size:1.1rem;">❌</button>
+                            </div>
+                        </div>
+                    `;
+                        });
+                    }
+                }
+
+                if (totalEl) totalEl.textContent = `R$ ${totalPreco.toFixed(2)}`;
+
+                // Atualiza o input hidden com o JSON dos produtos para o Django receber
+                if (inputJson) inputJson.value = JSON.stringify(carrinho);
+            }
+            // Função para exibir a notificação personalizada no topo da tela
+            function mostrarNotificacao(mensagem, icone = '🔔') {
+                const toast = document.getElementById('toast-notificacao');
+                const msgEl = document.getElementById('toast-mensagem');
+                const iconEl = document.getElementById('toast-icone');
+
+                if (toast && msgEl) {
+                    msgEl.innerText = mensagem;
+                    if (iconEl) iconEl.innerText = icone;
+                    toast.style.display = 'flex';
+
+                    setTimeout(() => {
+                        toast.style.display = 'none';
+                    }, 4000);
+                }
+            }
+
+            let urlRedirecionamento = '';
+
+            function abrirModalConfirmacao(mensagem, url, icone = '❓', corBotao = '#2563eb') {
+                urlRedirecionamento = url;
+
+                const msgEl = document.getElementById('modal-mensagem');
+                const iconEl = document.getElementById('modal-icone');
+                const btnConfirmar = document.getElementById('btn-modal-confirmar');
+                const modal = document.getElementById('modal-confirmacao');
+
+                if (msgEl) msgEl.innerText = mensagem;
+                if (iconEl) iconEl.innerText = icone;
+                if (btnConfirmar) btnConfirmar.style.backgroundColor = corBotao;
+                if (modal) modal.style.display = 'flex';
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                const urlParams = new URLSearchParams(window.location.search);
+
+                // 1. Notificação de Pedido Enviado para a Cozinha
+                if (urlParams.get('sucesso') === '1') {
+                    const painel = document.getElementById('painel-carrinho');
+                    if (painel) {
+                        painel.style.display = 'flex';
+                        painel.style.right = '0px';
+                    }
+                    mostrarNotificacao('Pedido enviado para a cozinha com Sucesso!!!', '👨‍🍳');
+                }
+
+                // 2. Notificação de Chamar Garçom
+                if (urlParams.get('garcom') === '1') {
+                    mostrarNotificacao('Solicitação enviada! O garçom já está a caminho da sua mesa.', '🔔');
+                }
+
+                // 3. Notificação de Conta Solicitada e Limpeza do Carrinho Local
+                if (urlParams.get('conta_fechada') === '1') {
+                    mostrarNotificacao('Solicitação enviada! O garçom trará a sua conta em breve.', '💳');
+
+                    // Limpa o carrinho local do navegador
+                    if (typeof carrinho !== 'undefined') {
+                        carrinho = [];
+                        if (typeof atualizarCarrinho === 'function') {
+                            atualizarCarrinho();
+                        }
+                    }
+                    localStorage.removeItem('carrinho');
+                }
+
+              // 4. LIMPEZA DA URL (Evita notificações repetidas no reload/F5)
+                if (urlParams.has('sucesso') || urlParams.has('garcom') || urlParams.has('conta_fechada')) {
+                    const mesa = urlParams.get('mesa') || '1';
+                    const urlLimpa = window.location.pathname + '?mesa=' + mesa;
+                    window.history.replaceState({}, document.title, urlLimpa);
+                }
+
+                // Auto-Reload: Sincroniza a comanda do cliente quando a cozinha encerra a conta
+                // (Reutilizamos o 'urlParams' que já foi declarado lá em cima)
+                const mesaNumero = urlParams.get('mesa') || '1';
+
+                setInterval(() => {
+                    fetch(`/status-mesa/${mesaNumero}/`)
+                        .then(res => res.json())
+                        .then(data => {
+                            // Se no servidor NÃO houver mais pedidos ativos para esta mesa
+                            if (data.pedidos_ativos === false) {
+                                // Limpa o carrinho local do navegador
+                                carrinho = [];
+                                localStorage.removeItem('carrinho');
+
+                                // Força o reset apenas na página do cardápio desta mesa
+                                window.location.href = `/?mesa=${mesaNumero}`;
+                            }
+                        })
+                        .catch(() => { });
+                }, 5000); // Verifica a cada 5 segundos
+
+                // 6. Ouvinte do Botão Chamar Garçom
+                const btnGarcom = document.getElementById('btn-chamar-garcom');
+                if (btnGarcom) {
+                    btnGarcom.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const url = btnGarcom.getAttribute('data-url');
+                        abrirModalConfirmacao('Deseja realmente chamar o garçom até à sua mesa?', url, '🔔', '#f59e0b');
+                    });
+                }
+                // Ouvinte do Botão Encerrar Conta com Validação de Comanda Vazia
+                const btnConta = document.getElementById('btn-fechar-conta');
+                if (btnConta) {
+                    btnConta.addEventListener('click', (e) => {
+                        e.preventDefault();
+
+                        // Verifica se existem itens acumulados na comanda da mesa
+                        const comandaItens = document.querySelectorAll('.comanda-historico ul li');
+
+                        if (!comandaItens || comandaItens.length === 0) {
+                            // Notifica se a comanda acumulada estiver vazia
+                            mostrarNotificacao('Não é possível finalizar a conta, pois você não pediu nada!', '⚠️');
+                        } else {
+                            // Se houver pedidos na comanda, abre o modal de confirmação
+                            const url = btnConta.getAttribute('data-url');
+                            abrirModalConfirmacao('Deseja realmente solicitar o encerramento da conta?', url, '💳', '#ef4444');
+                        }
+                    });
+                }
+                // Ouvintes dos Botões Cancelar e Confirmar do Modal
+                const modal = document.getElementById('modal-confirmacao');
+                const btnCancelar = document.getElementById('btn-modal-cancelar');
+                const btnConfirmar = document.getElementById('btn-modal-confirmar');
+
+                if (btnCancelar) {
+                    btnCancelar.addEventListener('click', () => {
+                        modal.style.display = 'none';
+                    });
+                }
+
+                if (btnConfirmar) {
+                    btnConfirmar.addEventListener('click', () => {
+                        if (urlRedirecionamento) {
+                            window.location.href = urlRedirecionamento;
+                        }
+                    });
+                }
+            });
+        </script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,382 @@
+:root {
+    /* Cores Principais / Tema */
+    --primary-red: #e11d48;
+    --primary-dark-red: #9f1239;
+    --accent-red: #f50707;
+    --accent-yellow: rgb(255, 255, 0);
+
+    /* Cores Neutras / Fundo e Texto */
+    --bg-body: #f8fafc;
+    --bg-card: #ffffff;
+    --text-primary: #1e293b;
+    --text-dark: #000000;
+    --text-muted: #64748b;
+    --text-light: #ffffff;
+    --price-green: #16a34a;
+
+    /* Sombras e Bordas */
+    --shadow-card: rgba(0, 0, 0, 0.08);
+    --shadow-card-hover: rgba(0, 0, 0, 0.12);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+}
+
+.header {
+    background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-dark-red) 100%);
+    color: var(--text-light);
+    text-align: center;
+    padding: 2.5rem 1rem;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+}
+
+.nav-bar {
+    margin-top: 1.5rem;
+}
+
+.nav-bar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.nav-bar a {
+    color: var(--text-light);
+    background-color: transparent;
+    border: 2px solid var(--accent-yellow);
+    border-radius: 1rem;
+    padding: 0.4rem 0.8rem;
+    display: inline-block;
+    text-decoration: none;
+    font-weight: 500px;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+}
+
+.nav-bar a:hover {
+    background-color: var(--accent-yellow);
+    padding:0.6rem 1rem;
+    color: #c6133a;
+    font-size:1.4rem;
+    transition:all 0.6s ;
+}
+
+.container {
+    max-width: 95%;
+    margin: 2rem 0 2rem 1rem;
+    padding: 0 ;
+}
+.cardapio-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr; /* Coluna fixa dos Chefs + resto para Pratos */
+    gap: 2.0rem;
+    align-items: start;
+}
+
+.categoria-secao {
+    margin-bottom: 2.5rem;
+}
+
+.categoria-secao h2 {
+    border-bottom: 2px solid var(--primary-red);
+    padding-bottom: 0.5rem;
+    color: var(--primary-dark-red);
+}
+
+/* ==========================================
+   SECÇÃO DOS CHEFS & CARROSSEL (SWIPER)
+   ========================================== */
+
+/* Secção dos Chefs alinhada à esquerda */
+.chefs-secao {
+    margin-top: 4rem;
+    margin-bottom: 4rem;
+    text-align: left; /* Garante que títulos e textos fiquem à esquerda */
+}
+
+/* Garante que o carrossel ocupe a largura normal sem centralizar forçadamente */
+.carrossel-chefe {
+    padding: 1.5rem 0 3rem 0 !important;
+    margin-left: 0 !important; /* Move o container para a esquerda */
+    margin-right: auto !important;
+}
+
+/* Card individual do Chef */
+.card-chef {
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    padding: 2.5rem 1.5rem;
+    text-align: left; /* Alinha o texto da bio e do nome à esquerda */
+    box-shadow: 0 4px 15px var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Alinha a foto e os itens à esquerda dentro do card */
+}
+
+/* Foto do Chef */
+.chef-foto {
+    width: 250px;
+    height:250px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position:auto;
+    margin-bottom: 1.2rem;
+    border: 4px solid var(--primary-red);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Biografia */
+.chef-bio {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0; /* Remove o margin: 0 auto que centralizava o parágrafo */
+}
+
+/* Estilo das bolinhas do Swiper (Paginação) */
+.swiper-pagination-bullet {
+    background: var(--text-muted) !important;
+    opacity: 0.5;
+}
+
+.swiper-pagination-bullet-active {
+    background: var(--primary-red) !important;
+    opacity: 1;
+    width: 20px !important; /* Efeito de pílula na bolinha ativa */
+    border-radius: 10px !important;
+    transition: all 0.3s ease;
+}  
+
+
+/* Grid dos pratos */
+.pratos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* Card individual do prato */
+.prato-card {
+    position: relative;
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    z-index: 1;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.badge-destaque{
+   position: absolute;
+   top: 12px;
+   left: 12px;
+   z-index: 10;
+   background-color:var(--primary-dark-red);
+   color: var(--text-light);
+   font-size: 0.95rem;
+   font-weight: 20px;
+   text-transform: uppercase;
+   padding:6px 10px;
+   border: 2px solid var(--accent-yellow);
+   border-radius: 20px;
+   box-shadow: var(--text-primary);
+   letter-spacing: 0.5px;
+}
+
+/* Fundo animado subindo no hover */
+.prato-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background-color: var(--primary-dark-red);
+    z-index: 1;
+    transition: height 1s ease-in-out;
+}
+
+.prato-card:hover::before {
+    height: 100%;
+}
+
+/* Imagem do prato */
+.prato-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+    position: relative;
+    z-index: 2;
+}
+
+/* Informações do prato */
+.prato-info {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    position: relative;
+    z-index: 2;
+}
+
+.prato-info h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.7rem;
+    color: var(--text-dark);
+}
+
+.prato-info .descricao {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(15px);
+    transition: opacity 1s ease-in-out, transform 1s ease-in-out, max-height 1s ease-in-out, margin 1s ease-in-out, color 1s ease-in-out;
+}
+
+.prato-info .preco {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--price-green);
+    align-items: center;
+    margin-top: 8px;
+}
+
+/* Transições de cor */
+.prato-info h3,
+.prato-info .preco {
+    transition: color 1s ease-in-out;
+}
+
+/* Revelação no hover */
+.prato-card:hover .prato-info .descricao {
+    opacity: 1;
+    max-height: 100px;
+    transform: translateY(0);
+    margin-bottom: 12px;
+}
+
+.prato-card:hover .prato-info h3,
+.prato-card:hover .prato-info .descricao,
+.prato-card:hover .prato-info .preco {
+    color: var(--text-light) !important;
+}
+
+.btn-pedir {
+    margin-top:auto;
+    padding: 8px 12px;
+    background-color: var(--primary-red);
+    color: var(--text-light);
+    font-size:1rem;
+    border:none;
+    border-radius:6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn-pedir:hover{
+    background-color:yellow;
+    border: var(--primary-dark-red) 2px solid;
+    font-size:1.1rem;
+    color:var(--text-dark);
+}
+
+.painel-carrinho {
+    position: fixed;
+    top: 0;
+    right: -450px;
+    width: 380px;
+    height: 100vh;
+    background-color: #ffffff;
+    color: #1e293b;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: right 0.3s ease-in-out;
+    overflow-y: auto;
+}
+
+.carrinho-flutuante {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background-color: #25d366;
+    color: white;
+    font-size: 1.4rem;
+    padding: 12px 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 99998;
+}
+
+#carrinho-contador {
+    font-weight: bold;
+    background-color: white;
+    color: #25d366;
+    border-radius: 50%;
+    padding: 2px 8px;
+    font-size: 0.9rem;
+    margin-left: 5px;
+}
+
+.carrinho-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.btn-fechar {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.carrinho-itens {
+    flex-grow: 1;
+    margin: 15px 0;
+    overflow-y: auto;
+}
+
+.carrinho-footer {
+    border-top: 2px solid #e2e8f0;
+    padding-top: 15px;
+}
+
+.total-container {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
