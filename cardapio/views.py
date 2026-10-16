@@ -94,19 +94,19 @@ def marcar_entregue(request, pedido_id):
 # -------------------------------------------------------------
 def painel_cozinha(request):
 
-    """ Traz todos os pedidos ativos (pendentes e entregues) para o painel """
-    pedidos = Pedido.objects.exclude(status='CONCLUIDO').order_by('-data_criacao')
-    pedidos_concluidos = Pedido.objects.filter(status='CONCLUIDO').order_by('-data_criacao')
+    """ Traz todos os pedidos para o painel para o JavaScript gerir as abas """
+    pedidos = Pedido.objects.all().order_by('-data_criacao')  # Traz todos os estados (pendente, entregue, concluido)
+    
     mesas_atendimento = Mesa.objects.filter(chamar_garcom=True)
     mesas_conta = Mesa.objects.filter(pedir_conta=True)
+
     return render(request, 'cardapio/cozinha.html', {
         'pedidos': pedidos,
-        'pedidos_concluidos': pedidos_concluidos,
         'mesas_atendimento': mesas_atendimento,
         'mesas_conta': mesas_conta,
         'agora': timezone.now()
-
-    }) 
+    })
+    
 
 def marcar_entregue(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id)
