@@ -47,17 +47,20 @@
 
         .cozinha-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
+            padding: 20px;
         }
 
         .card-pedido {
             background-color: #1e293b;
-            color: white;
-            padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            transition: border-color 0.3s ease;
+            padding: 16px;
+            color: #f8fafc;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .card-pedido.pendente {
@@ -227,11 +230,19 @@
                     <span>R$ {{ pedido.total_pedido }}</span>
                 </div>
 
-                <div style="margin-top: 12px;">
+                <div style="margin-top: 12px; width: 100%;">
                     {% if pedido.status == 'ENTREGUE' %}
                     <div class="status-entregue">
                         ✓ Entregue na Mesa
                     </div>
+                    {% elif pedido.status == 'CONCLUIDO' %}
+                    <div style="background-color: #334155; color: #cbd5e1; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; margin-bottom: 8px;">
+                        💳 Conta Fechada / Concluído
+                    </div>
+                    <a href="{% url 'apagar_pedido' pedido.id %}"
+                        style="display: block; background-color: #ef4444; color: white; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+                        🗑️ Apagar Registo
+                    </a>
                     {% else %}
                     <a href="{% url 'marcar_entregue' pedido.id %}" class="btn-entregue">
                         ✅ Marcar como Entregue
@@ -272,10 +283,10 @@
 
             document.querySelectorAll('.btn_filtro').forEach(btn => btn.classList.remove('ativo'));
             if (botao) botao.classList.add('ativo');
-            
+
             document.querySelectorAll('.card-pedido').forEach(cartao => {
                 const status = cartao.getAttribute('data-status');
-                
+
                 if (statusFiltro === 'todos') {
                     cartao.style.display = 'block';
                 } else if (statusFiltro === 'pendente') {
@@ -303,7 +314,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Lê a aba que estava ativa ou assume 'pendente' por defeito
             const filtroSalvo = localStorage.getItem('filtroAtivo') || 'pendente';
-            
+
             const botoes = document.querySelectorAll('.btn_filtro');
             let botaoAlvo = null;
 
@@ -326,7 +337,7 @@
             const btnCancelar = document.getElementById('btn-cancelar-cozinha');
             const btnConfirmar = document.getElementById('btn-confirmar-cozinha');
             const btnsEncerrar = document.querySelectorAll('.btn-encerrar-cozinha');
-            
+
             btnsEncerrar.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
