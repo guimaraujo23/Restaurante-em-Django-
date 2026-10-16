@@ -187,73 +187,179 @@
     </div>
     {% endfor %}
 
-    <!-- GRID PRINCIPAL DE PEDIDOS ATIVOS -->
-    <div id="secao-conta-fechada" class="aba-conta-fechada-content">
-        <div class="cozinha-grid">
-            {% for pedido in pedidos %}
-            <div class="card-pedido {% if pedido.status == 'ENTREGUE' %}entregue{% elif pedido.status == 'CONCLUIDO' %}concluido{% else %}{% for item in pedido.itens.all %}{% if item.novo and pedido.status != 'ENTREGUE' %}tem-novos{% endif %}{% endfor %}{% endif %}"
-                data-status="{{ pedido.status }}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0;">Mesa {{ pedido.mesa.numero }}</h3>
+    <!-- 1. GRELHA PRINCIPAL DOS PEDIDOS ATIVOS / ENTREGUES -->
+    <div class="cozinha-grid">
+        {% for pedido in pedidos %}
+        <div class="card-pedido {% if pedido.status == 'ENTREGUE' %}entregue{% elif pedido.status == 'CONCLUIDO' %}concluido{% else %}{% for item in pedido.itens.all %}{% if item.novo and pedido.status != 'ENTREGUE' %}tem-novos{% endif %}{% endfor %}{% endif %}"
+            data-status="{{ pedido.status }}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">Mesa {{ pedido.mesa.numero }}</h3>
+            </div>
+
+            <p style="margin: 8px 0; color: #94a3b8; font-size: 0.9rem;">
+                Data: {{ pedido.data_criacao|date:"d/m/Y H:i" }} | Status: {{ pedido.get_status_display }}
+            </p>
+
+            <ul style="list-style: none; padding-left: 0; margin: 15px 0;">
+                {% for item in pedido.itens.all %}
+                <li
+                    style="margin-bottom: 8px; font-size: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span>
+                        {% if item.novo and pedido.status != 'ENTREGUE' %}
+                        <span
+                            style="height: 16px; width: 16px; background-color: #ef4444; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle;"
+                            title="Novo pedido!"></span>
+                        {% else %}
+                        <span
+                            style="height: 16px; width: 16px; background-color: #10b981; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle;"
+                            title="Já enviado"></span>
+                        {% endif %}
+
+                        <strong style="color: #38bdf8;">{{ item.quantidade }}x</strong>
+                        {{ item.prato_nome }}
+                    </span>
+                    <span style="color: #94a3b8;">R$ {{ item.subtotal }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 12px; font-size: 0.95rem; border-top: 1px solid #334155; padding-top: 8px;">
+                      <span>Total da Comanda:</span>
+                      <span style="color: #38bdf8;">R$ {{ pedido.calcular_total|floatformat:2 }}</span>
+            </div>
+
+            <div style="margin-top: 12px; width: 100%;">
+                {% if pedido.status == 'ENTREGUE' %}
+                <div class="status-entregue">
+                    ✓ Entregue na Mesa
                 </div>
-
-                <p style="margin: 8px 0; color: #94a3b8; font-size: 0.9rem;">
-                    Data: {{ pedido.data_criacao|date:"d/m/Y H:i" }} | Status: {{ pedido.get_status_display }}
-                </p>
-
-                <ul style="list-style: none; padding-left: 0; margin: 15px 0;">
-                    {% for item in pedido.itens.all %}
-                    <li
-                        style="margin-bottom: 8px; font-size: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                        <span>
-                            {% if item.novo and pedido.status != 'ENTREGUE' %}
-                            <span
-                                style="height: 16px; width: 16px; background-color: #ef4444; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle;"
-                                title="Novo pedido!"></span>
-                            {% else %}
-                            <span
-                                style="height: 16px; width: 16px; background-color: #10b981; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle;"
-                                title="Já enviado"></span>
-                            {% endif %}
-
-                            <strong style="color: #38bdf8;">{{ item.quantidade }}x</strong>
-                            {{ item.prato_nome }}
-                        </span>
-                        <span style="color: #94a3b8;">R$ {{ item.subtotal }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-
+                {% elif pedido.status == 'CONCLUIDO' %}
                 <div
-                    style="margin-top: 10px; font-weight: bold; border-top: 1px solid #334155; padding-top: 8px; display: flex; justify-content: space-between; color: #38bdf8;">
-                    <span>Total da Comanda:</span>
-                    <span>R$ {{ pedido.total_pedido }}</span>
+                    style="background-color: #334155; color: #cbd5e1; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; margin-bottom: 8px;">
+                    💳 Conta Fechada / Concluído
                 </div>
+                <a href="{% url 'apagar_pedido' pedido.id %}"
+                    style="display: block; background-color: #ef4444; color: white; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+                    🗑️ Apagar Registo
+                </a>
+                {% else %}
+                <a href="{% url 'marcar_entregue' pedido.id %}" class="btn-entregue">
+                    ✅ Marcar como Entregue
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p style="color: #94a3b8; text-align: center; grid-column: 1 / -1; margin-top: 40px;">Nenhum pedido registado no
+            momento.</p>
+        {% endfor %}
+    </div>
 
-                <div style="margin-top: 12px; width: 100%;">
-                    {% if pedido.status == 'ENTREGUE' %}
-                    <div class="status-entregue">
-                        ✓ Entregue na Mesa
+
+    <!-- 2. SECÇÃO EXCLUSIVA DE CONTA FECHADA (Com Filtros e Relatórios Integrados) -->
+    <div id="secao-conta-fechada" class="aba-conta-fechada-content" style="display: none; margin-top: 20px;">
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+
+            <!-- Barra Lateral de Filtros (Aparece apenas nesta aba) -->
+            <div
+                style="background-color: #1e293b; padding: 20px; border-radius: 12px; width: 300px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                <h3
+                    style="font-size: 1.1rem; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+                    📊 Filtros e Relatório
+                </h3>
+
+                <form method="GET" action="" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label
+                            style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 4px;">Selecionar
+                            Data:</label>
+                        <input type="date" name="data" value="{{ request.GET.data }}"
+                            style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white;">
                     </div>
-                    {% elif pedido.status == 'CONCLUIDO' %}
-                    <div style="background-color: #334155; color: #cbd5e1; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; margin-bottom: 8px;">
-                        💳 Conta Fechada / Concluído
+                    <div>
+                        <label
+                            style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 4px;">Período:</label>
+                          <select name="periodo" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white;">
+                            <option value="dia" {% if periodo_filtro == 'dia' %}selected{% endif %}>Por Dia</option>
+                            <option value="semana" {% if periodo_filtro == 'semana' %}selected{% endif %}>Por Semana</option>
+                            <option value="mes" {% if periodo_filtro == 'mes' %}selected{% endif %}>Por Mês</option>
+                        </select>
                     </div>
-                    <a href="{% url 'apagar_pedido' pedido.id %}"
-                        style="display: block; background-color: #ef4444; color: white; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
-                        🗑️ Apagar Registo
-                    </a>
-                    {% else %}
-                    <a href="{% url 'marcar_entregue' pedido.id %}" class="btn-entregue">
-                        ✅ Marcar como Entregue
-                    </a>
-                    {% endif %}
+
+                    <button type="submit"
+                        style="background-color: #2563eb; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                        Filtrar Relatório
+                    </button>
+                </form>
+
+                <!-- Caixas de Sumário -->
+                <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                    <div
+                        style="background: #0f172a; padding: 12px; border-radius: 8px; border-left: 4px solid #10b981;">
+                        <span style="font-size: 0.8rem; color: #94a3b8; display: block;">Total Faturado</span>
+                        <strong style="font-size: 1.2rem; color: #10b981;">R$ {{ total_faturado|floatformat:2 }}</strong>
+                    </div>
+
+                    <div
+                        style="background: #0f172a; padding: 12px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <span style="font-size: 0.8rem; color: #94a3b8; display: block;">Pratos Vendidos</span>
+                        <strong style="font-size: 1.2rem; color: #3b82f6;">{{ total_pratos }} unidades</strong>
+                    </div>
                 </div>
             </div>
-            {% empty %}
-            <p style="color: #94a3b8; text-align: center; grid-column: 1 / -1; margin-top: 40px;">Nenhum pedido
-                registado no momento.</p>
-            {% endfor %}
+
+            <!-- Grelha de Pedidos Concluídos / Conta Fechada -->
+            <div style="flex: 1;">
+                <div class="cozinha-grid">
+                    {% for pedido in pedidos_concluidos %}
+                    <div class="card-pedido" data-status="{{ pedido.status }}">
+                        <div>
+                            <!-- Cabeçalho do Cartão -->
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <strong style="font-size: 1.1rem;">Mesa {{ pedido.mesa.numero }}</strong>
+                                <span style="font-size: 0.75rem; color: #94a3b8;">{{ pedido.data_criacao|date:"d/m/Y
+                                    H:i" }}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 10px;">Status: Conta
+                                Paga/Fechada</div>
+
+                            <hr style="border-color: #334155; margin: 8px 0;">
+
+                            <!-- Listagem dos Pratos do Pedido -->
+                            <div style="font-size: 0.9rem; margin-bottom: 10px;">
+                                {% for item in pedido.itens.all %}
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span>🟢 {{ item.quantidade }}x {{ item.prato_nome }}</span>
+                                    <span style="color: #38bdf8;">R$ {{ item.subtotal|floatformat:2 }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Rodapé do Cartão (Total e Botão) -->
+                        <div>
+                            <div
+                                style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 12px; font-size: 0.95rem; border-top: 1px solid #334155; padding-top: 8px;">
+                                <span>Total da Comanda:</span>
+                                <span style="color: #38bdf8;">R$ {{ pedido.calcular_total|floatformat:2 }}</span>
+                            </div>
+
+                            <a href="{% url 'apagar_pedido' pedido.id %}"
+                                onclick="return confirm('Tens a certeza que desejas apagar este registo da comanda?');"
+                                style="display: block; background-color: #ef4444; color: white; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+                                🗑️ Apagar Registo
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="color: #94a3b8; grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        Nenhuma conta fechada registada para este período.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
     </div>
     <!-- MODAL DE CONFIRMAÇÃO ESTILIZADO -->
@@ -284,33 +390,39 @@
             document.querySelectorAll('.btn_filtro').forEach(btn => btn.classList.remove('ativo'));
             if (botao) botao.classList.add('ativo');
 
-            document.querySelectorAll('.card-pedido').forEach(cartao => {
-                const status = cartao.getAttribute('data-status');
+            const grelhaPrincipal = document.querySelector('.cozinha-grid');
+            const secaoContaFechada = document.getElementById('secao-conta-fechada');
 
-                if (statusFiltro === 'todos') {
-                    cartao.style.display = 'block';
-                } else if (statusFiltro === 'pendente') {
-                    if (status !== 'ENTREGUE' && status !== 'CONCLUIDO') {
+            // Controla o que mostrar dependendo da aba selecionada
+            if (statusFiltro === 'conta_fechada') {
+                if (grelhaPrincipal) grelhaPrincipal.style.display = 'none';
+                if (secaoContaFechada) secaoContaFechada.style.display = 'block';
+            } else {
+                if (secaoContaFechada) secaoContaFechada.style.display = 'none';
+                if (grelhaPrincipal) grelhaPrincipal.style.display = 'grid'; // ou 'flex', dependendo do teu CSS original
+
+                // Filtra os cards normais (Pendentes, Entregues, Todos)
+                document.querySelectorAll('.card-pedido').forEach(cartao => {
+                    const status = cartao.getAttribute('data-status');
+
+                    if (statusFiltro === 'todos') {
                         cartao.style.display = 'block';
-                    } else {
-                        cartao.style.display = 'none';
+                    } else if (statusFiltro === 'pendente') {
+                        if (status !== 'ENTREGUE' && status !== 'CONCLUIDO') {
+                            cartao.style.display = 'block';
+                        } else {
+                            cartao.style.display = 'none';
+                        }
+                    } else if (statusFiltro === 'entregue') {
+                        if (status === 'ENTREGUE') {
+                            cartao.style.display = 'block';
+                        } else {
+                            cartao.style.display = 'none';
+                        }
                     }
-                } else if (statusFiltro === 'entregue') {
-                    if (status === 'ENTREGUE') {
-                        cartao.style.display = 'block';
-                    } else {
-                        cartao.style.display = 'none';
-                    }
-                } else if (statusFiltro === 'conta_fechada') {
-                    if (status === 'CONCLUIDO') {
-                        cartao.style.display = 'block';
-                    } else {
-                        cartao.style.display = 'none';
-                    }
-                }
-            });
+                });
+            }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             // Lê a aba que estava ativa ou assume 'pendente' por defeito
             const filtroSalvo = localStorage.getItem('filtroAtivo') || 'pendente';
@@ -359,7 +471,7 @@
         // Atualização automática a cada 10 segundos
         setTimeout(function () {
             location.reload();
-        }, 10000);
+        }, 15000);
     </script>
 </body>
 

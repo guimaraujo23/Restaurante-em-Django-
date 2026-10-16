@@ -54,8 +54,8 @@ class Pedido(models.Model):
     status = models.CharField(max_length=30, choices=STATUS_CHOICES,default='PENDENTE')
     pago = models.BooleanField(default=False)
 
-    def total_pedido(self):
-        return sum(item.subtotal() for item in self.itens.all())
+    def calcular_total(self):
+        return sum(item.subtotal for item in self.itens.all())
     def __str__(self):
         return f"Pedido #{self.id} - Mesa {self.mesa.numero}"
 
@@ -66,6 +66,7 @@ class ItemPedido(models.Model):
     quantidade = models.PositiveIntegerField(default=1)
     novo = models.BooleanField(default=True)
 
+    @property
     def subtotal(self):
         return self.preco_unitario * self.quantidade
     

@@ -1,13 +1,14 @@
 import json
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Categoria, Chef, Mesa, Pedido, ItemPedido
+from .models import Categoria, Chef, Mesa, Pedido, ItemPedido,Prato
 from django.utils import timezone
+from datetime import datetime, timedelta
+from django.db.models import Sum, Count
 
 # -------------------------------------------------------------
 # 1. VISÃO DO CLIENTE (TABLET DA MESA)
 # -------------------------------------------------------------
-from .models import Categoria, Prato, Chef, Mesa, Pedido, ItemPedido
 
 def menu_mesa(request, mesa_numero=None):
     if not mesa_numero:
@@ -93,20 +94,44 @@ def marcar_entregue(request, pedido_id):
 # 2. VISÃO DA COZINHA E PAINEL DO RESTAURANTE
 # -------------------------------------------------------------
 def painel_cozinha(request):
-
-    """ Traz todos os pedidos para o painel para o JavaScript gerir as abas """
-    pedidos = Pedido.objects.all().order_by('-data_criacao')  # Traz todos os estados (pendente, entregue, concluido)
+    pedidos = Pedido.objects.all().order_by('-data_criacao')
+    pedidos_concluidos = Pedido.objects.filter(status='CONCLUIDO')
     
+    # Filtros de data para o relatório lateral
+    data_filtro = request.GET.get('data')
+    periodo_filtro = request.GET.get('periodo', 'dia')
+    
+    if data_filtro:
+        try:
+            data_obj = datetime.strptime(data_filtro, '%Y-%m-%d').date()
+            if periodo_filtro == 'dia':
+                pedidos_concluidos = pedidos_concluidos.filter(data_criacao__date=data_obj)
+            elif periodo_filtro == 'semana':
+                inicio_semana = data_obj - timedelta(days=data_obj.weekday())
+                fim_semana = inicio_semana + timedelta(days=6)
+                pedidos_concluidos = pedidos_concluidos.filter(data_criacao__date__range=[inicio_semana, fim_semana])
+            elif periodo_filtro == 'mes':
+                pedidos_concluidos = pedidos_concluidos.filter(data_criacao__year=data_obj.year, data_criacao__month=data_obj.month)
+        except ValueError:
+            pass
+
+    # Cálculo dos totais
+    total_faturado = sum(p.calcular_total() if hasattr(p, 'calcular_total') else 0 for p in pedidos_concluidos)
+    total_pratos = sum(sum(item.quantidade for item in p.itens.all()) if hasattr(p, 'itens') else 1 for p in pedidos_concluidos)
+
     mesas_atendimento = Mesa.objects.filter(chamar_garcom=True)
     mesas_conta = Mesa.objects.filter(pedir_conta=True)
 
     return render(request, 'cardapio/cozinha.html', {
         'pedidos': pedidos,
+        'pedidos_concluidos': pedidos_concluidos,
+        'total_faturado': total_faturado,
+        'total_pratos': total_pratos,
+        'periodo_filtro': periodo_filtro,
         'mesas_atendimento': mesas_atendimento,
         'mesas_conta': mesas_conta,
         'agora': timezone.now()
     })
-    
 
 def marcar_entregue(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id)
